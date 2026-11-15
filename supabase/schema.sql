@@ -1,0 +1,50 @@
+-- Invites: run once in Supabase → SQL Editor.
+-- Multi-event: each host owns events; guests can only *add* a reply through
+-- submit_rsvp() and can never read anyone's answers.
+
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  owner_id uuid not null default auth.uid() references auth.users on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.rsvps (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events on delete cascade,
+  name text not null check (char_length(name) between 1 and 80),
+  answers jsonb not null default '{}'::jsonb,   -- attending, plus_one, message, any custom fields
+  created_at timestamptz not null default now()
+);
+create index if not exists rsvps_event_idx on public.rsvps(event_id, created_at);
+
+alter table public.events enable row level security;
+alter table public.rsvps  enable row level security;
+
+drop policy if exists "own events" on public.events;
+create policy "own events" on public.events for all
+  using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
+drop policy if exists "read own rsvps" on public.rsvps;
+create policy "read own rsvps" on public.rsvps for select
+  using (exists (select 1 from public.events e where e.id = event_id and e.owner_id = auth.uid()));
+drop policy if exists "delete own rsvps" on public.rsvps;
+create policy "delete own rsvps" on public.rsvps for delete
+  using (exists (select 1 from public.events e where e.id = event_id and e.owner_id = auth.uid()));
+-- no insert/update policy: guests go through the function below
+
+create or replace function public.submit_rsvp(p_slug text, p_name text, p_answers jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare eid uuid; recent int;
+begin
+  select id into eid from public.events where slug = p_slug;
+  if eid is null then raise exception 'unknown event'; end if;
+  if p_name is null or char_length(trim(p_name)) = 0 or char_length(p_name) > 80 then raise exception 'bad name'; end if;
+  if jsonb_typeof(p_answers) <> 'object' or pg_column_size(p_answers) > 4000 then raise exception 'bad answers'; end if;
+  -- crude flood guard: max 300 replies per event per hour
+  select count(*) into recent from public.rsvps where event_id = eid and created_at > now() - interval '1 hour';
+  if recent > 300 then raise exception 'slow down'; end if;
+  insert into public.rsvps (event_id, name, answers) values (eid, trim(p_name), p_answers);
+end $$;
+
+grant execute on function public.submit_rsvp(text, text, jsonb) to anon, authenticated;

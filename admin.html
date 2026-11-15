@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Guest list · Septem of Swords</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,800;1,400&family=Monsieur+La+Doulaise&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="invite.css">
+  <style>
+    body { padding-bottom: 60px; }
+    .furn { position: static; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 10px var(--pad) 40px; }
+    .head { display: flex; flex-direction: column; align-items: center; margin: 20px 0 36px; }
+    .head .script { font-size: clamp(48px, 10vw, 80px); margin-bottom: -.32em; position: relative; z-index: 1; }
+    .head .heavy { font-size: clamp(48px, 12vw, 104px); text-align: center; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); margin-bottom: 40px; }
+    .stat { padding: 16px 10px; text-align: center; }
+    .stat + .stat { border-left: 1px solid var(--rule); }
+    .stat b { display: block; font-size: clamp(36px, 8vw, 64px); font-weight: 800; letter-spacing: -.06em; line-height: 1; }
+    .stat span { font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    @media (max-width: 560px) { .stats { grid-template-columns: 1fr 1fr; } .stat:nth-child(3) { border-left: 0; } .stat:nth-child(n+3) { border-top: 1px solid var(--rule); } }
+    h2.sec { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: -.02em; margin: 36px 0 8px; }
+    h2.sec i { font-weight: 500; }
+    .list { list-style: none; }
+    .list li { display: grid; grid-template-columns: 34px 1fr auto; gap: 4px 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+    .list li:first-child { border-top: 1px solid var(--rule); }
+    .list .n { font-weight: 500; font-style: italic; color: var(--mute); font-size: 13px; }
+    .list .nm { font-weight: 800; text-transform: uppercase; letter-spacing: -.03em; font-size: 17px; }
+    .list .plus { font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .list .msg { grid-column: 2 / -1; font-size: 14px; color: var(--ink); }
+    .list .msg::before { content: "“"; } .list .msg::after { content: "”"; }
+    .list .meta { grid-column: 2 / -1; font-size: 11px; color: var(--mute); display: flex; gap: 12px; }
+    .list .meta button { font-size: 11px; color: var(--mute); text-decoration: underline; }
+    .empty { color: var(--mute); padding: 12px 0; border-top: 1px solid var(--rule); }
+    .tools { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 30px; }
+    .pill { padding: 9px 18px; border: 1px solid var(--ink); border-radius: 999px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .pill:hover { background: var(--ink); color: var(--paper); }
+    .banner { border: 1px solid var(--ink); padding: 12px 14px; font-size: 13px; margin-bottom: 30px; }
+    .login { max-width: 420px; margin: 0 auto; }
+    .login p { font-size: 13px; color: var(--mute); margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <header class="furn"><span>cotoaleksandra</span><span>guest list</span><span>12.12.2026</span></header>
+  <div class="wrap">
+    <div class="head"><span class="script">the</span><h1 class="heavy">Guest list</h1></div>
+
+    <form class="login" id="login" hidden>
+      <div class="f"><label for="email">Email</label><input type="text" id="email" inputmode="email" autocomplete="email"></div>
+      <button class="send">Send me a login link</button>
+      <p id="login-msg"></p>
+    </form>
+
+    <div id="app" hidden>
+      <div class="banner" id="demo" hidden>
+        <b>DEMO MODE.</b> Answers are only saved in this browser until Supabase is connected in <code>config.js</code>.
+        <button class="linkish" id="reset" style="text-decoration:underline">clear test answers</button>
+      </div>
+      <div class="stats" id="stats"></div>
+
+      <h2 class="sec"><span>Confirmed</span><i id="c-count"></i></h2>
+      <ol class="list" id="yes"></ol>
+
+      <h2 class="sec"><span>Can't come</span><i id="n-count"></i></h2>
+      <ol class="list" id="no"></ol>
+
+      <div class="tools">
+        <button class="pill" id="copy">Copy confirmed names</button>
+        <button class="pill" id="csv">Download CSV</button>
+        <button class="pill" id="refresh">Refresh</button>
+        <button class="pill" id="logout" hidden>Log out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
