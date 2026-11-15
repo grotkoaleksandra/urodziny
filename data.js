@@ -26,28 +26,15 @@
       return { emailed: false };
     },
 
-    // host
-    async session() { return live ? ok(await sb.auth.getSession()).session : { demo: true }; },
-    onAuth(cb) { if (live) sb.auth.onAuthStateChange((_e, s) => cb(s)); },
-    async signIn(email) {
-      ok(await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } }));
-    },
-    async signOut() { if (live) await sb.auth.signOut(); },
-    async getEvent() {
-      if (!live) return { id: "demo", slug: cfg.eventSlug };
-      // first login by the host's email takes ownership (see claim_event in schema.sql)
-      await sb.rpc("claim_event", { p_slug: cfg.eventSlug });
-      const ev = ok(await sb.from("events").select("*").eq("slug", cfg.eventSlug).maybeSingle());
-      if (!ev) throw new Error("This guest list belongs to another account.");
-      return ev;
-    },
-    async listRsvps(ev) {
+    // host: no login. The guest list opens with a private link (admin.html#k=…);
+    // the key is checked server-side (host_rsvps in schema.sql).
+    async listRsvps(key) {
       if (!live) return loadDemo();
-      return ok(await sb.from("rsvps").select("*").eq("event_id", ev.id).order("created_at"));
+      return ok(await sb.rpc("host_rsvps", { p_slug: cfg.eventSlug, p_key: key }));
     },
-    async deleteRsvp(ev, row) {
+    async deleteRsvp(key, row) {
       if (!live) { saveDemo(loadDemo().filter((r) => r.id !== row.id)); return; }
-      ok(await sb.from("rsvps").delete().eq("id", row.id));
+      ok(await sb.rpc("host_delete_rsvp", { p_slug: cfg.eventSlug, p_key: key, p_id: row.id }));
     },
     resetDemo() { try { localStorage.removeItem(KEY); } catch {} },
   };

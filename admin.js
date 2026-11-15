@@ -2,7 +2,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const D = window.InviteData;
-  let ev = null, rows = [], latest = [];
+  let key = null, rows = [], latest = [];
 
   const fmt = (iso) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -37,7 +37,7 @@
     $("#no").innerHTML = no.length ? no.map(item).join("") : '<li class="empty">No one.</li>';
   }
 
-  async function refresh() { rows = await D.listRsvps(ev); render(); }
+  async function refresh() { rows = await D.listRsvps(key); render(); }
 
   document.addEventListener("click", async (e) => {
     const d = e.target.closest("[data-del]");
@@ -46,7 +46,7 @@
     if (!r || !confirm(`Remove ${r.name}'s reply? This can't be undone.`)) return;
     // remove every reply from this person
     const k = r.name.trim().toLowerCase().replace(/\s+/g, " ");
-    for (const x of rows.filter((x) => x.name.trim().toLowerCase().replace(/\s+/g, " ") === k)) await D.deleteRsvp(ev, x);
+    for (const x of rows.filter((x) => x.name.trim().toLowerCase().replace(/\s+/g, " ") === k)) await D.deleteRsvp(key, x);
     refresh();
   });
 
@@ -67,21 +67,28 @@
   });
   $("#refresh").addEventListener("click", refresh);
   $("#reset").addEventListener("click", () => { if (confirm("Clear all test answers in this browser?")) { D.resetDemo(); refresh(); } });
-  $("#logout").addEventListener("click", async () => { await D.signOut(); location.reload(); });
-  $("#login").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    try { await D.signIn($("#email").value.trim()); $("#login-msg").textContent = "Check your inbox for the login link."; }
-    catch (err) { $("#login-msg").textContent = "Couldn't send: " + err.message; }
+  // The private link carries the key in the #hash (never sent to any server log).
+  // Remember it on this device so plain /admin.html works next time.
+  const KK = "invite-host-key:" + window.INVITE.eventSlug;
+  const fromHash = new URLSearchParams(location.hash.slice(1)).get("k");
+  if (fromHash) { try { localStorage.setItem(KK, fromHash); } catch {} history.replaceState(null, "", location.pathname); }
+  try { key = fromHash || localStorage.getItem(KK); } catch { key = fromHash; }
+
+  $("#forget").addEventListener("click", () => {
+    if (!confirm("Forget the private link on this device? You'll need the link again to open the list.")) return;
+    try { localStorage.removeItem(KK); } catch {} location.reload();
   });
 
-  async function start(session) {
-    if (!session) { $("#login").hidden = false; return; }
-    $("#login").hidden = true; $("#app").hidden = false;
+  (async () => {
+    if (D.mode === "live" && !key) { $("#locked").hidden = false; return; }
+    $("#app").hidden = false;
     $("#demo").hidden = D.mode !== "demo";
-    $("#logout").hidden = D.mode === "demo";
-    try { ev = await D.getEvent(); await refresh(); }
-    catch (err) { console.error(err); alert("Couldn't load: " + err.message); }
-  }
-  D.onAuth((s) => { if (s && !ev) start(s); });
-  D.session().then(start);
+    $("#forget").hidden = D.mode === "demo";
+    try { await refresh(); }
+    catch (err) {
+      console.error(err);
+      $("#app").hidden = true; $("#locked").hidden = false;
+      if (/not allowed/.test(err.message)) { try { localStorage.removeItem(KK); } catch {} }
+    }
+  })();
 })();

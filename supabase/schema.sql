@@ -61,3 +61,35 @@ begin
 end $$;
 revoke execute on function public.claim_event(text) from public, anon;
 grant execute on function public.claim_event(text) to authenticated;
+
+-- ── added 2026-11-15: no host login. The guest list opens with a private link
+-- (admin.html#k=<key>); only the key's sha256 lives here. ──
+create extension if not exists pgcrypto with schema extensions;
+alter table public.events add column if not exists admin_key_hash text;
+update public.events set admin_key_hash = '5035133983df9c304a4fbdc09a429b4629b417818a9a8875099b70d7989599c5' where slug = 'ola-urodziny-2026';
+
+create or replace function public.host_event(p_slug text, p_key text)
+returns uuid language sql stable security definer set search_path = public, extensions as $$
+  select id from public.events
+  where slug = p_slug and admin_key_hash is not null
+    and admin_key_hash = encode(digest(coalesce(p_key,''), 'sha256'), 'hex');
+$$;
+revoke execute on function public.host_event(text, text) from public, anon, authenticated;
+
+create or replace function public.host_rsvps(p_slug text, p_key text)
+returns setof public.rsvps language plpgsql security definer set search_path = public as $$
+declare eid uuid := public.host_event(p_slug, p_key);
+begin
+  if eid is null then raise exception 'not allowed'; end if;
+  return query select * from public.rsvps where event_id = eid order by created_at;
+end $$;
+
+create or replace function public.host_delete_rsvp(p_slug text, p_key text, p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare eid uuid := public.host_event(p_slug, p_key);
+begin
+  if eid is null then raise exception 'not allowed'; end if;
+  delete from public.rsvps where id = p_id and event_id = eid;
+end $$;
+grant execute on function public.host_rsvps(text, text) to anon, authenticated;
+grant execute on function public.host_delete_rsvp(text, text, uuid) to anon, authenticated;
