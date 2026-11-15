@@ -78,7 +78,7 @@
   // ───────── card art ─────────
   function drawCard() {
     const cv = $("#halftone");
-    Halftone.render(cv, photoSrc, { cell: Math.max(3.2, cv.clientWidth / 52) });
+    Halftone.render(cv, photoSrc, { cell: Math.max(3.2, cv.clientWidth / 66) });
   }
   function loadPhoto() {
     $("#c-placeholder").hidden = !!C.card.photo;
