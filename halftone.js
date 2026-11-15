@@ -50,55 +50,32 @@ window.Halftone = (() => {
     ctx.restore();
   }
 
-  // Stand-in until Ola's photo exists: a figure slipping away with an armful
-  // of swords, glancing back (the Seven of Swords pose), drawn in greys.
+  // Stand-in until Ola's photo exists: seven swords standing in a row,
+  // points down, under a soft moon. No figure.
   function standIn() {
     const c = document.createElement("canvas");
     c.width = 360; c.height = 480;
     const g = c.getContext("2d");
-    const bg = g.createRadialGradient(170, 170, 40, 180, 240, 330);
-    bg.addColorStop(0, "#ffffff"); bg.addColorStop(1, "#e6e6e6");
-    g.fillStyle = bg; g.fillRect(0, 0, 360, 480);
-    // ground
-    const gr = g.createLinearGradient(0, 380, 0, 480);
-    gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.45)");
-    g.fillStyle = gr; g.fillRect(0, 370, 360, 110);
-
-    const sword = (x, y, len, ang, w = 6, tone = "#3a3a3a") => {
-      g.save(); g.translate(x, y); g.rotate(ang);
-      g.fillStyle = tone;
-      g.beginPath(); g.moveTo(-w / 2, 0); g.lineTo(w / 2, 0); g.lineTo(w / 2, -len); g.lineTo(0, -len - 14); g.lineTo(-w / 2, -len); g.closePath(); g.fill();
+    g.fillStyle = "#fff"; g.fillRect(0, 0, 360, 480);
+    const moon = g.createRadialGradient(180, 190, 10, 180, 190, 160);
+    moon.addColorStop(0, "rgba(0,0,0,.4)"); moon.addColorStop(.55, "rgba(0,0,0,.15)"); moon.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = moon; g.beginPath(); g.arc(180, 190, 160, 0, 7); g.fill();
+    const sword = (x, top, len, tone) => {
+      const bl = g.createLinearGradient(x - 10, 0, x + 10, 0);
+      bl.addColorStop(0, tone); bl.addColorStop(.5, "#a8a8a8"); bl.addColorStop(1, tone);
+      g.fillStyle = bl;
+      g.beginPath(); g.moveTo(x - 9, top + 54); g.lineTo(x + 9, top + 54); g.lineTo(x + 7, top + 54 + len); g.lineTo(x, top + 78 + len); g.lineTo(x - 7, top + 54 + len); g.closePath(); g.fill();
       g.fillStyle = "#111";
-      g.fillRect(-18, -4, 36, 8);            // guard
-      g.fillRect(-3, 0, 6, 28);              // grip
-      g.beginPath(); g.arc(0, 32, 6, 0, 7); g.fill(); // pommel
-      g.restore();
+      g.fillRect(x - 24, top + 44, 48, 11);                  // cross-guard
+      g.fillRect(x - 5, top + 12, 10, 32);                   // grip
+      g.beginPath(); g.arc(x, top + 9, 10, 0, 7); g.fill(); // pommel
     };
-    // two swords left behind, planted in the ground
-    sword(300, 400, 150, 0.06, 6, "#555");
-    sword(328, 408, 130, -0.04, 6, "#666");
-
-    // body
-    const body = g.createLinearGradient(110, 140, 220, 360);
-    body.addColorStop(0, "#1e1e1e"); body.addColorStop(1, "#6a6a6a");
-    g.fillStyle = body;
-    g.beginPath(); // coat
-    g.moveTo(140, 150); g.quadraticCurveTo(205, 150, 210, 230); g.lineTo(225, 330); g.quadraticCurveTo(170, 345, 120, 325);
-    g.lineTo(125, 230); g.quadraticCurveTo(110, 170, 140, 150); g.fill();
-    // legs, tiptoeing to the right
-    g.strokeStyle = "#2a2a2a"; g.lineCap = "round"; g.lineWidth = 22;
-    g.beginPath(); g.moveTo(155, 320); g.lineTo(125, 395); g.lineTo(108, 412); g.stroke();
-    g.beginPath(); g.moveTo(190, 320); g.lineTo(232, 388); g.lineTo(258, 392); g.stroke();
-    // head, turned back over the shoulder
-    const hd = g.createRadialGradient(150, 100, 6, 158, 112, 40);
-    hd.addColorStop(0, "#9a9a9a"); hd.addColorStop(1, "#262626");
-    g.fillStyle = hd; g.beginPath(); g.ellipse(160, 112, 33, 38, -0.2, 0, 7); g.fill();
-    g.fillStyle = "#151515"; g.beginPath(); g.ellipse(170, 96, 36, 26, 0.3, Math.PI, 2 * Math.PI); g.fill(); // hair
-    // armful of five swords, carried diagonally
-    for (let i = 0; i < 5; i++) sword(110 + i * 9, 250 - i * 4, 170, 1.05 + i * 0.05, 6, i % 2 ? "#4a4a4a" : "#2e2e2e");
-    // arm wrapped around them
-    g.strokeStyle = "#1c1c1c"; g.lineWidth = 20;
-    g.beginPath(); g.moveTo(195, 175); g.quadraticCurveTo(215, 235, 165, 250); g.stroke();
+    for (let i = 0; i < 7; i++) {
+      const t = (i - 3) / 3;                                  // -1 … 1
+      sword(54 + i * 42, 60 + t * t * 44, 250 - t * t * 30, i % 2 ? "#2a2a2a" : "#444");
+    }
+    g.fillStyle = "#222";
+    [[40, 40, 3], [322, 52, 2.5], [300, 440, 2], [52, 450, 2]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
     return c;
   }
 

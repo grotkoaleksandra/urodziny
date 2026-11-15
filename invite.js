@@ -21,7 +21,7 @@
       thanks: "Dziękuję", seeYou: "Do zobaczenia", missYou: "Będę tęsknić",
       yesLine: (p) => (p ? "będziesz z osobą towarzyszącą." : "będziesz."),
       noLine: "szkoda, że Cię nie będzie.",
-      change: "zmień odpowiedź", badEmail: "Sprawdź adres email.", emailed: (e) => `Zaproszenie wysłane na ${e}.`, photoSoon: "( zdjęcie wkrótce )", footer: "zaproszenie",
+      change: "zmień odpowiedź", badEmail: "Sprawdź adres email.", emailed: (e) => `Potwierdzenie wysłane na ${e}.`, photoSoon: "( zdjęcie wkrótce )", footer: "zaproszenie",
     },
     en: {
       tapSeal: "( tap the seal )", tapCard: "( tap the card to turn it over )", toRsvp: "( reply ↓ )",
@@ -31,7 +31,7 @@
       thanks: "Thank you", seeYou: "See you there", missYou: "You'll be missed",
       yesLine: (p) => (p ? "you're coming with a +1." : "you're coming."),
       noLine: "sorry you can't make it.",
-      change: "change my reply", badEmail: "Please check the email address.", emailed: (e) => `Invite sent to ${e}.`, photoSoon: "( photo coming soon )", footer: "an invitation",
+      change: "change my reply", badEmail: "Please check the email address.", emailed: (e) => `Confirmation sent to ${e}.`, photoSoon: "( photo coming soon )", footer: "an invitation",
     },
   };
   const t = (k, ...a) => { const v = T[lang][k]; return typeof v === "function" ? v(...a) : v; };
@@ -140,7 +140,7 @@
         return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><textarea id="${id}" name="${f.id}" maxlength="${f.max || 1000}" rows="4">${esc(v)}</textarea></div>`;
       }
       if (f.type === "email") {
-        return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><input type="text" inputmode="email" autocomplete="email" spellcheck="false" id="${id}" name="${f.id}" maxlength="${f.max || 200}" value="${esc(v)}"></div>`;
+        return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><input type="text" inputmode="email" autocomplete="email" spellcheck="false" id="${id}" name="${f.id}" maxlength="${f.max || 200}" value="${esc(v)}" ${f.hint ? `aria-describedby="${id}-hint"` : ""}>${f.hint ? `<p class="hint-small" id="${id}-hint">${esc(L(f.hint))}</p>` : ""}</div>`;
       }
       return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><input type="text" id="${id}" name="${f.id}" maxlength="${f.max || 200}" value="${esc(v)}" ${f.id === "name" ? 'autocomplete="name"' : ""}></div>`;
     }).join("");

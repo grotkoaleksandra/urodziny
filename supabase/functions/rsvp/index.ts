@@ -1,5 +1,6 @@
 // rsvp: saves a guest's reply and, for a "yes" with an email, sends them the
-// opened invite (card images + details + .ics). The email content comes only
+// opened invite (card images + details + .ics); a "no" gets a short
+// confirmation. The email content comes only
 // from the host's own site (event.json), never from the request, so this
 // can't be used to send arbitrary mail.
 //
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
   else return json({ error: "attending" }, 400);
   if (answers.attending === "yes" && (a.plus_one === "yes" || a.plus_one === "no")) answers.plus_one = a.plus_one;
   const email = String(a.email ?? "").trim().toLowerCase().slice(0, 200);
-  if (answers.attending === "yes" && email) {
+  if (email) {
     if (!EMAIL_RE.test(email)) return json({ error: "email" }, 400);
     answers.email = email;
   }
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
   // email the opened invite
   let emailed = false;
   const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (answers.attending === "yes" && answers.email && resendKey) {
+  if (answers.email && resendKey) {
     try {
       // at most 2 emails to the same address per 10 minutes
       const tenAgo = new Date(Date.now() - 600e3).toISOString();
@@ -80,7 +81,9 @@ Deno.serve(async (req) => {
         .eq("event_id", ev.id).eq("answers->>email", answers.email).gte("created_at", tenAgo);
       if ((recent ?? 0) <= 2) {
         const content: EventContent = await (await fetch(`${cfg.site}/event.json`, { cache: "no-store" })).json();
-        const mail = buildEmail(content, cfg.site, lang, name, answers.plus_one === "yes");
+        const mail = answers.attending === "yes"
+          ? buildEmail(content, cfg.site, lang, name, answers.plus_one === "yes")
+          : buildDeclineEmail(content, cfg.site, lang, name);
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
@@ -91,7 +94,7 @@ Deno.serve(async (req) => {
             subject: mail.subject,
             html: mail.html,
             text: mail.text,
-            attachments: [{ filename: "septem-of-swords.ics", content: encodeBase64(new TextEncoder().encode(mail.ics)) }],
+            attachments: mail.ics ? [{ filename: "septem-of-swords.ics", content: encodeBase64(new TextEncoder().encode(mail.ics)) }] : undefined,
           }),
         });
         if (res.ok) emailed = true;
@@ -155,5 +158,30 @@ function buildEmail(c: EventContent, site: string, lang: "pl" | "en", name: stri
     `SUMMARY:${icsEsc(c.title[lang])}`, `LOCATION:${icsEsc(`${c.place}, ${address}`)}`, `URL:${site}/?open=1`,
     `DESCRIPTION:${icsEsc(note)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   return { subject: T.subject, html, text, ics };
+}
+function buildDeclineEmail(c: EventContent, site: string, lang: "pl" | "en", name: string) {
+  const T = lang === "pl"
+    ? { subject: `Dziękuję za odpowiedź · ${c.title.pl}`, hi: `Cześć ${name},`, head: "Będę tęsknić",
+        body: "Dostałam Twoją odpowiedź: tym razem nie dasz rady. Dziękuję, że dałeś/aś znać!",
+        change: "Jeśli plany się zmienią, otwórz zaproszenie i odpowiedz jeszcze raz albo po prostu odpisz na tego maila.", open: "Otwórz zaproszenie" }
+    : { subject: `Thanks for letting me know · ${c.title.en}`, hi: `Hi ${name},`, head: "You'll be missed",
+        body: "Got your reply: you can't make it this time. Thank you for letting me know!",
+        change: "If plans change, open the invite and reply again, or just reply to this email.", open: "Open the invitation" };
+  const ink = "#2a2926", paper = "#e9e8e4", font = "'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif";
+  const link = `${site}/?open=1&lang=${lang}`;
+  const html = `<!doctype html><html><body style="margin:0;background:${paper}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${paper}"><tr><td align="center" style="padding:28px 14px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px">
+  <tr><td style="font:600 11px ${font};text-transform:uppercase;color:${ink}">cotoaleksandra</td>
+      <td align="right" style="font:600 11px ${font};text-transform:uppercase;color:${ink}">${esc(dd(c.date))}</td></tr>
+  <tr><td colspan="2" align="center" style="padding:34px 0 6px;font:italic 17px Georgia,serif;color:${ink}">${esc(T.hi)}</td></tr>
+  <tr><td colspan="2" align="center" style="font:800 34px/1 ${font};letter-spacing:-2px;text-transform:uppercase;color:${ink}">${esc(T.head)}</td></tr>
+  <tr><td colspan="2" align="center" style="padding:18px 0 0;font:15px/1.5 ${font};color:${ink}">${esc(T.body)}</td></tr>
+  <tr><td colspan="2" align="center" style="padding:10px 0 0;font:13px/1.5 ${font};color:#6a6863">${esc(T.change)}</td></tr>
+  <tr><td colspan="2" align="center" style="padding:26px 0 0"><a href="${link}" style="display:inline-block;border:1px solid ${ink};border-radius:999px;color:${ink};text-decoration:none;padding:10px 22px;font:600 12px ${font};text-transform:uppercase">( ${esc(T.open)} )</a></td></tr>
+  <tr><td colspan="2" align="right" style="padding:26px 0 0;font:italic 30px Georgia,serif;color:${ink}">${esc(c.host)}</td></tr>
+</table></td></tr></table></body></html>`;
+  const text = `${T.hi}\n\n${T.head}. ${T.body}\n\n${T.change}\n${link}\n\n${c.host}`;
+  return { subject: T.subject, html, text, ics: "" };
 }
 function dd(iso: string) { const [y, m, d] = iso.split("-"); return `${d}.${m}.${y}`; }
