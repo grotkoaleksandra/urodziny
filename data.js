@@ -35,8 +35,10 @@
     async signOut() { if (live) await sb.auth.signOut(); },
     async getEvent() {
       if (!live) return { id: "demo", slug: cfg.eventSlug };
-      let ev = ok(await sb.from("events").select("*").eq("slug", cfg.eventSlug).maybeSingle());
-      if (!ev) ev = ok(await sb.from("events").insert({ slug: cfg.eventSlug }).select().single());
+      // first login by the host's email takes ownership (see claim_event in schema.sql)
+      await sb.rpc("claim_event", { p_slug: cfg.eventSlug });
+      const ev = ok(await sb.from("events").select("*").eq("slug", cfg.eventSlug).maybeSingle());
+      if (!ev) throw new Error("This guest list belongs to another account.");
       return ev;
     },
     async listRsvps(ev) {

@@ -48,3 +48,16 @@ begin
 end $$;
 
 grant execute on function public.submit_rsvp(text, text, jsonb) to anon, authenticated;
+
+-- ── added 2026-11-15: event is pre-created unowned; the host's first login claims it ──
+alter table public.events alter column owner_id drop not null;
+insert into public.events (slug, owner_id) values ('ola-urodziny-2026', null) on conflict (slug) do nothing;
+create or replace function public.claim_event(p_slug text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  if lower(coalesce(auth.jwt()->>'email','')) not in ('grotkowskaaleksandra3@gmail.com','cotoaleksandra@gmail.com') then return; end if;
+  update public.events set owner_id = auth.uid() where slug = p_slug and owner_id is null;
+end $$;
+revoke execute on function public.claim_event(text) from public, anon;
+grant execute on function public.claim_event(text) to authenticated;
