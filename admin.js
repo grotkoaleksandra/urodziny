@@ -31,7 +31,7 @@
         <span class="nm">${esc(r.name)}</span>
         <span class="plus">${r.answers?.plus_one === "yes" ? "+1" : ""}</span>
         ${r.answers?.message ? `<span class="msg">${esc(r.answers.message)}</span>` : ""}
-        <span class="meta">${r.answers?.email ? `<span>${esc(r.answers.email)}</span>` : ""}<span>${fmt(r.created_at)}${r.replies > 1 ? ` · replied ${r.replies}×, showing latest` : ""}</span>
+        <span class="meta"><span>${fmt(r.created_at)}${r.replies > 1 ? ` · replied ${r.replies}×, showing latest` : ""}</span>
         <button data-del="${esc(r.id)}">remove</button></span></li>`;
     $("#yes").innerHTML = yes.length ? yes.map(item).join("") : '<li class="empty">No one yet.</li>';
     $("#no").innerHTML = no.length ? no.map(item).join("") : '<li class="empty">No one.</li>';
@@ -58,7 +58,7 @@
     setTimeout(() => (e.target.textContent = "Copy confirmed names"), 1500);
   });
   $("#csv").addEventListener("click", () => {
-    const fields = window.INVITE.rsvpFields.filter((f) => f.id !== "name").map((f) => f.id);
+    const fields = window.INVITE.rsvpFields.filter((f) => f.id !== "name" && f.type !== "email").map((f) => f.id);
     const out = [["name", ...fields, "replied_at"], ...latest.map((r) => [r.name, ...fields.map((f) => r.answers?.[f] ?? ""), r.created_at])];
     const csv = out.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");

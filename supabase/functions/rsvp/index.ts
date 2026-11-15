@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   else return json({ error: "attending" }, 400);
   if (answers.attending === "yes" && (a.plus_one === "yes" || a.plus_one === "no")) answers.plus_one = a.plus_one;
   const email = String(a.email ?? "").trim().toLowerCase().slice(0, 200);
-  if (email) {
+  if (email && answers.attending === "yes") {  // only a "yes" gets an email
     if (!EMAIL_RE.test(email)) return json({ error: "email" }, 400);
     answers.email = email;
   }

@@ -30,7 +30,7 @@ window.INVITE = {
     { id: "plus_one", type: "choice", showIf: { attending: "yes" },
       label: { pl: "Czy przyjdziesz z osobą towarzyszącą (+1)?", en: "Are you bringing a +1?" },
       options: [{ v: "yes", pl: "Tak", en: "Yes" }, { v: "no", pl: "Nie", en: "No" }] },
-    { id: "email", type: "email", required: true, max: 200,
+    { id: "email", type: "email", required: true, max: 200, showIf: { attending: "yes" },  // only a "yes" gets the details by email
       label: { pl: "Twój email", en: "Your email" },
       hint: { pl: "Dostaniesz potwierdzenie i wszystkie informacje o imprezie. Email służy tylko do tego, nic więcej.",
               en: "You'll get a confirmation with all the party details. Your email is only used for this, nothing else." } },
