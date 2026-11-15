@@ -1,0 +1,17 @@
+{
+  "host": "Ola",
+  "title": { "pl": "Urodziny Oli", "en": "Ola's birthday" },
+  "scriptName": { "pl": "Oli", "en": "Ola's" },
+  "heavyTitle": { "pl": "URODZINY", "en": "BIRTHDAY" },
+  "date": "2026-12-12",
+  "time": "20:00",
+  "tz": "+01:00",
+  "durationHours": 6,
+  "place": "Septem of Swords",
+  "address": { "pl": "adres wkrótce", "en": "address soon" },
+  "mapUrl": "",
+  "note": {
+    "pl": "Kończę kolejny rok i bardzo chcę świętować go z Tobą. Będzie muzyka, dobre rzeczy do jedzenia i najbliżsi ludzie. Daj znać, czy będziesz.",
+    "en": "I'm turning another year older and I'd love to celebrate it with you. There'll be music, good things to eat and my favourite people. Let me know if you can make it."
+  }
+}

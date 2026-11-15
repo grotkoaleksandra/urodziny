@@ -31,7 +31,7 @@
         <span class="nm">${esc(r.name)}</span>
         <span class="plus">${r.answers?.plus_one === "yes" ? "+1" : ""}</span>
         ${r.answers?.message ? `<span class="msg">${esc(r.answers.message)}</span>` : ""}
-        <span class="meta"><span>${fmt(r.created_at)}${r.replies > 1 ? ` · replied ${r.replies}×, showing latest` : ""}</span>
+        <span class="meta">${r.answers?.email ? `<span>${esc(r.answers.email)}</span>` : ""}<span>${fmt(r.created_at)}${r.replies > 1 ? ` · replied ${r.replies}×, showing latest` : ""}</span>
         <button data-del="${esc(r.id)}">remove</button></span></li>`;
     $("#yes").innerHTML = yes.length ? yes.map(item).join("") : '<li class="empty">No one yet.</li>';
     $("#no").innerHTML = no.length ? no.map(item).join("") : '<li class="empty">No one.</li>';

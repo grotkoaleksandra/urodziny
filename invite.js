@@ -21,7 +21,7 @@
       thanks: "Dziękuję", seeYou: "Do zobaczenia", missYou: "Będę tęsknić",
       yesLine: (p) => (p ? "będziesz z osobą towarzyszącą." : "będziesz."),
       noLine: "szkoda, że Cię nie będzie.",
-      change: "zmień odpowiedź", photoSoon: "( zdjęcie wkrótce )", footer: "zaproszenie",
+      change: "zmień odpowiedź", badEmail: "Sprawdź adres email.", emailed: (e) => `Zaproszenie wysłane na ${e}.`, photoSoon: "( zdjęcie wkrótce )", footer: "zaproszenie",
     },
     en: {
       tapSeal: "( tap the seal )", tapCard: "( tap the card to turn it over )", toRsvp: "( reply ↓ )",
@@ -31,7 +31,7 @@
       thanks: "Thank you", seeYou: "See you there", missYou: "You'll be missed",
       yesLine: (p) => (p ? "you're coming with a +1." : "you're coming."),
       noLine: "sorry you can't make it.",
-      change: "change my reply", photoSoon: "( photo coming soon )", footer: "an invitation",
+      change: "change my reply", badEmail: "Please check the email address.", emailed: (e) => `Invite sent to ${e}.`, photoSoon: "( photo coming soon )", footer: "an invitation",
     },
   };
   const t = (k, ...a) => { const v = T[lang][k]; return typeof v === "function" ? v(...a) : v; };
@@ -139,6 +139,9 @@
       if (f.type === "textarea") {
         return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><textarea id="${id}" name="${f.id}" maxlength="${f.max || 1000}" rows="4">${esc(v)}</textarea></div>`;
       }
+      if (f.type === "email") {
+        return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><input type="text" inputmode="email" autocomplete="email" spellcheck="false" id="${id}" name="${f.id}" maxlength="${f.max || 200}" value="${esc(v)}"></div>`;
+      }
       return `<div class="f"><label for="${id}">${esc(L(f.label))}</label><input type="text" id="${id}" name="${f.id}" maxlength="${f.max || 200}" value="${esc(v)}" ${f.id === "name" ? 'autocomplete="name"' : ""}></div>`;
     }).join("");
   }
@@ -161,13 +164,15 @@
     if (e.target.website.value) return; // bot
     const missing = C.rsvpFields.filter((f) => f.required && visible(f) && !String(values[f.id] || "").trim());
     if (missing.length) { err.textContent = t("required") + missing.map((f) => L(f.label)).join(", "); err.hidden = false; return; }
+    const badEmail = C.rsvpFields.find((f) => f.type === "email" && visible(f) && values[f.id] && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(values[f.id]).trim()));
+    if (badEmail) { err.textContent = t("badEmail"); err.hidden = false; return; }
     const answers = {};
     for (const f of C.rsvpFields) if (f.id !== "name" && visible(f) && values[f.id] != null && values[f.id] !== "") answers[f.id] = String(values[f.id]).trim();
     const name = String(values.name).trim();
     const btn = $("#send"); btn.disabled = true; btn.textContent = t("sending");
     try {
-      await InviteData.submitRsvp(name, answers);
-      const sent = { name, answers };
+      const res = await InviteData.submitRsvp(name, answers, lang);
+      const sent = { name, answers, emailed: !!(res && res.emailed) };
       store.set(SENT_KEY, JSON.stringify(sent));
       showThanks(sent);
     } catch (ex) {
@@ -184,6 +189,7 @@
     th.hidden = false;
     th.innerHTML = `<span class="script">${t("thanks")}</span><span class="heavy">${yes ? t("seeYou") : t("missYou")}</span>
       <p>${esc(sent.name)} · ${yes ? t("yesLine", sent.answers.plus_one === "yes") : t("noLine")}</p>
+      ${sent.emailed && sent.answers.email ? `<p>${esc(t("emailed", sent.answers.email))}</p>` : ""}
       <button type="button" id="change">${t("change")}</button>`;
     $("#change").onclick = () => {
       Object.assign(values, { name: sent.name }, sent.answers);
@@ -192,10 +198,38 @@
   }
 
   // ───────── init ─────────
-  renderText();
-  loadPhoto();
-  const prev = JSON.parse(store.get(SENT_KEY) || "null");
-  if (prev) showThanks(prev);
-  // fonts change the card's text metrics; redraw after they load
-  document.fonts && document.fonts.ready.then(() => photoSrc && drawCard());
+  function showOpened() {
+    // skip the envelope (link from the email: ?open=1)
+    stage.style.animation = "none";
+    stage.classList.add("cracked", "open", "flap-behind", "rising", "dropped", "gone", "instant");
+    phase = "open";
+    card.setAttribute("tabindex", "0");
+    document.body.classList.add("opened");
+    $("#rsvp").hidden = false; $("#to-rsvp").hidden = false;
+  }
+  async function init() {
+    try {
+      const r = await fetch("event.json", { cache: "no-cache" });
+      C.content = await r.json();
+    } catch (e) { console.error("event.json", e); }
+    const capture = params.get("capture"); // front | back | og (for generating images)
+    if (capture) document.body.classList.add("capture", "capture-" + capture);
+    if (capture === "og") {
+      document.body.insertAdjacentHTML("beforeend", `
+        <div class="og-furn top"><span>cotoaleksandra</span><span>12.12.2026</span></div>
+        <div class="og-text"><span class="script">you've been</span><span class="heavy">INVITED</span>
+          <p>( zaproszenie · septem of swords )</p></div>
+        <div class="og-furn bottom"><span>an invitation</span><span>no. VII</span></div>`);
+    }
+    if (capture === "front" || capture === "back" || params.get("open") === "1") showOpened();
+    if (capture === "back") card.classList.add("flipped");
+    renderText();
+    if (capture) $("#hint").textContent = "";
+    loadPhoto();
+    const prev = JSON.parse(store.get(SENT_KEY) || "null");
+    if (prev && !capture) showThanks(prev);
+    // fonts change the card's text metrics; redraw after they load
+    document.fonts && document.fonts.ready.then(() => { photoSrc && drawCard(); document.body.classList.add("ready"); });
+  }
+  init();
 })();

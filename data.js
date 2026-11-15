@@ -12,11 +12,18 @@
     mode: live ? "live" : "demo",
 
     // guest
-    async submitRsvp(name, answers) {
-      if (live) return ok(await sb.rpc("submit_rsvp", { p_slug: cfg.eventSlug, p_name: name, p_answers: answers }));
+    // Live: the "rsvp" edge function saves the reply and, for a yes with an
+    // email, sends the opened invite to the guest.
+    async submitRsvp(name, answers, lang) {
+      if (live) {
+        const { data, error } = await sb.functions.invoke("rsvp", { body: { slug: cfg.eventSlug, name, answers, lang } });
+        if (error) throw error;
+        return data;
+      }
       const rows = loadDemo();
       rows.push({ id: Math.random().toString(36).slice(2), name, answers, created_at: new Date().toISOString() });
       saveDemo(rows);
+      return { emailed: false };
     },
 
     // host
