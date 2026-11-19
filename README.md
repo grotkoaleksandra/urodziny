@@ -22,3 +22,6 @@ Put it in `photo/` (e.g. `photo/ola.jpg`) and set `card.photo` in `config.js`. U
 
 ## Still placeholders
 Photo, time (20:00?), address, seal initials, note text (draft), link-preview image.
+
+## Updating
+After changing any .css or .js file, bump the `?v=` stamp on the links in `index.html` and `admin.html`, or browsers (Safari especially) may mix old and new files.
