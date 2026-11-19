@@ -12,7 +12,7 @@ window.INVITE = {
   seal: { initials: "O", wax: "#6e1018" },          // [PLACEHOLDER] initials
   card: {
     number: "VII",
-    photo: "photo/ola-seven-of-swords.jpg", // halftoned on the card; empty = swords stand-in
+    photo: "photo/karol.jpg", // halftoned on the card; empty = swords stand-in
     titleHeavy: "SEPTEM",
     titleScript: "of Swords",
   },
